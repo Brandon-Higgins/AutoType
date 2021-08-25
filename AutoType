@@ -1,0 +1,163 @@
+from pynput.keyboard import Key, Controller
+import time
+import re
+
+class Order:
+	def __init__(self, consumption, edi, FO, order_seq, date, shipment, nrm, packer, initial):
+		self.consumption = str(consumption)
+		self.edi = str(edi)
+		self.FO = str(FO)
+		self.order_seq = str(order_seq)
+		self.date = str(date)
+		self.shipment = str(shipment)
+		self.nrm = str(nrm)
+		self.packer = str(packer)
+		self.initial = str(initial)
+
+def FO_menu(order_list):
+	cmd = ""
+
+	while((cmd != "exit")&(len(order_list)!=0)):
+		print("FO MENU: Enter cmd 'go' to start AutoTyping FO: " +order_list[0].FO +" or exit to leave")
+		cmd = input()
+		print()
+		if(cmd.lower() == "go"):
+			enter_order(order_list[0])
+			order_list.pop(0)
+			if(len(order_list) == 0):
+				print("End of FO")
+			
+def enter_order(order):
+	print("STARTING IN 3...")
+	time.sleep(1)
+	print("2...")
+	time.sleep(1)
+	print("1...")
+	time.sleep(1)
+	
+	keyboard = Controller()
+
+	keyboard.type(order.date)
+	time.sleep(0.1)
+	keyboard.press(Key.enter)
+	keyboard.release(Key.enter)
+	time.sleep(0.1)
+	keyboard.type(order.FO)
+	time.sleep(0.1)
+	keyboard.press(Key.enter)
+	keyboard.release(Key.enter)
+	time.sleep(0.1)
+	keyboard.type(order.shipment)
+	time.sleep(0.1)
+	keyboard.press(Key.enter)
+	keyboard.release(Key.enter)
+	time.sleep(0.1)
+	keyboard.type(order.edi)
+	time.sleep(0.1)
+	keyboard.press(Key.enter)
+	keyboard.release(Key.enter)
+	time.sleep(0.1)
+	keyboard.type("NRM")
+	time.sleep(0.1)
+	keyboard.press(Key.enter)
+	keyboard.release(Key.enter)
+	time.sleep(0.1)
+	keyboard.type(order.order_seq)
+	time.sleep(0.1)
+	keyboard.press(Key.enter)
+	keyboard.release(Key.enter)
+	time.sleep(0.1)
+	keyboard.type("FW")
+	time.sleep(0.1)
+	keyboard.press(Key.enter)
+	keyboard.release(Key.enter)
+	time.sleep(0.1)
+	keyboard.type("AUTOTYPE")
+	time.sleep(0.1)
+	keyboard.press(Key.enter)
+	keyboard.release(Key.enter)
+	time.sleep(0.1)
+	keyboard.type(order.consumption)
+	time.sleep(0.1)
+	keyboard.press(Key.enter)
+	keyboard.release(Key.enter)
+	time.sleep(0.1)
+	keyboard.press(Key.enter)
+	keyboard.release(Key.enter)
+
+def main_menu():
+	cmd = ""
+
+	while(cmd != "exit"):
+		print("MAIN MENU: Enter a command (or use 'help'):")
+		cmd = input()
+		print()
+		parsed_cmd = cmd.split()
+		process_cmd(parsed_cmd)
+	
+def process_cmd(cmd): 
+	if(cmd[0].lower() == "start"):
+		if(cmd[1].lower() == "edi"):
+			print("Starting EDI: " + cmd[2])
+			start_edi(cmd[2])
+	elif(cmd[0].lower() == "help"):
+		display_help_menu()
+	elif(cmd[0].lower() == "exit"):
+		print("Goodbye!")
+	else:
+		print("Command not recognized")
+	
+def display_help_menu():
+	print("Welcome to the help menu")
+	print("To use the program first open the EDI pdf file")
+	print("Copy the entire document (CTRL-A) and paste into a new .txt file, \nsaving as '[edi_number].txt' ex '57563.txt'")
+	print("In the main menu use the command 'start edi [edi number]' to start the program")
+	print("Type 'go' when ready and click into AutoMate, when the countdown is finished, the program will run")
+	print("To do the next FO type 'go' again, and the program will start again")
+	print("To exit the program type 'exit'\n")
+
+def start_edi(edi):
+	#Open and close file
+	
+	file_name = edi + ".txt"
+	text_file = open(file_name, "r")
+	data = text_file.read()
+	text_file.close()
+
+	order_list = []
+
+	print("Please enter the date for this edi: (mm/dd/yy)")
+	date = input()
+	date = date.replace("/","")
+	nrm = "NRM"
+	packer = "FW"
+	initial = "AutoType"
+
+	consumption_start = data.find("External Shipment #") 			# Find Consumption number
+	consumption = data[consumption_start+20:consumption_start+25]	# Save number by string splicing
+
+	edi_start = data.find("****")			# Find EDI number
+	edi = data[edi_start+27:edi_start+32]	# Save EDI by splicing
+	data = data[edi_start+4:len(data)]		# Remove string contents before "****"
+
+	# Loop until no more "****"
+	while (data.find("****") != -1):
+		FO_start = data.find("****")				# Find FO
+		FO = data[FO_start+14:FO_start+21]			# Splice FO
+		order_seq = data[FO_start+22:FO_start+30]	# Find order sequence
+		shipment = data[FO_start+31:FO_start+32]
+		data = data[FO_start+4:len(data)] 			# Splice order sequence
+		
+		
+		tempOrder = Order(consumption,edi,FO,order_seq,date,shipment,nrm,packer,initial)	# Create new order object
+		order_list.append(tempOrder)					# Add new object to list of objects
+
+	# Print list of objects
+
+	for x in order_list:
+		print("Consumption: "+x.consumption+" EDI: "+x.edi+" FO: "+x.FO+" SEQ: "+x.order_seq+ " Shipment: "+x.shipment)
+		
+	print()
+	FO_menu(order_list)	
+	
+main_menu()
